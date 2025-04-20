@@ -4,18 +4,36 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
+struct Stoplight {
+  int id;
+  const byte red_led;
+  const byte yellow_led;
+  const byte green_led;
+  int red_led_status;
+  int yellow_led_status;
+  int green_led_status;
+};
+
 bool isConnected = false;
 HTTPClient client;
 const byte red_led = 32;
 const byte yellow_led = 25;
 const byte green_led = 26;
+struct Stoplight stoplight1 = {0, 32, 25, 26, HIGH, LOW, LOW};
+struct Stoplight stoplight2 = {0, 27, 14, 12, LOW, LOW, HIGH};
+
+void setupStoplight(Stoplight &stoplight){
+  digitalWrite(stoplight.red_led, stoplight.red_led_status);
+  digitalWrite(stoplight.yellow_led, stoplight.yellow_led_status);
+  digitalWrite(stoplight.green_led, stoplight.green_led_status);
+}
 
 void setup() {
   Serial.begin(921600);
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(red_led, OUTPUT);
-  pinMode(yellow_led, OUTPUT);
-  pinMode(green_led, OUTPUT);
+  pinMode(stoplight1.red_led, OUTPUT);
+  pinMode(stoplight1.yellow_led, OUTPUT);
+  pinMode(stoplight1.green_led, OUTPUT);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   digitalWrite(red_led, HIGH);
