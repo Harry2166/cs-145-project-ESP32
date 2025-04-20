@@ -11,7 +11,7 @@ This is the ESP32 code dedicated to the taking in the stoplight information from
 ## Team
 This project was developed in fulfillment of the requirements for CS145.
 
-The following are the developers of the projects:
+The following are the developers of the project:
 1. Steve Rogers
 2. Stephen Strange
 3. Lebron James
