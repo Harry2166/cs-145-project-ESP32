@@ -20,12 +20,18 @@ const byte red_led = 32;
 const byte yellow_led = 25;
 const byte green_led = 26;
 struct Stoplight stoplight1 = {0, 32, 25, 26, HIGH, LOW, LOW};
-struct Stoplight stoplight2 = {0, 27, 14, 12, LOW, LOW, HIGH};
+struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, HIGH};
 
 void setupStoplight(Stoplight &stoplight){
   digitalWrite(stoplight.red_led, stoplight.red_led_status);
   digitalWrite(stoplight.yellow_led, stoplight.yellow_led_status);
   digitalWrite(stoplight.green_led, stoplight.green_led_status);
+}
+
+void overwriteStoplight(Stoplight &stoplight, int red_status, int yellow_status, int green_status) {
+  stoplight.red_led_status = red_status;
+  stoplight.yellow_led_status = yellow_status;
+  stoplight.green_led_status = green_status;
 }
 
 void setup() {
