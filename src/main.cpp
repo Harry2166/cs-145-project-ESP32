@@ -16,11 +16,11 @@ struct Stoplight {
 
 bool isConnected = false;
 HTTPClient client;
-const byte red_led = 32;
-const byte yellow_led = 25;
-const byte green_led = 26;
+// const byte red_led = 32;
+// const byte yellow_led = 25;
+// const byte green_led = 26;
 struct Stoplight stoplight1 = {0, 32, 25, 26, HIGH, LOW, LOW};
-struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, HIGH};
+// struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, HIGH};
 
 void setupStoplight(Stoplight &stoplight){
   digitalWrite(stoplight.red_led, stoplight.red_led_status);
@@ -42,15 +42,17 @@ void setup() {
   pinMode(stoplight1.green_led, OUTPUT);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  digitalWrite(red_led, HIGH);
+  overwriteStoplight(stoplight1, HIGH, LOW, LOW);
+  setupStoplight(stoplight1);
   delay(500);
-  digitalWrite(red_led, LOW);
-  digitalWrite(yellow_led, HIGH);
+  overwriteStoplight(stoplight1, LOW, HIGH, LOW);
+  setupStoplight(stoplight1);
   delay(500);
-  digitalWrite(yellow_led, LOW);
-  digitalWrite(green_led, HIGH);
+  overwriteStoplight(stoplight1, LOW, LOW, HIGH);
+  setupStoplight(stoplight1);
   delay(500);
-  digitalWrite(green_led, LOW);
+  overwriteStoplight(stoplight1, LOW, LOW, LOW);
+  setupStoplight(stoplight1);
 
 }
 
@@ -69,17 +71,14 @@ void accessJokeAPI(StaticJsonDocument<1024> &doc){
   Serial.println("[" + String(id) + "] " + String(setup) + " = " + String(delivery));
   Serial.println(id);
   if (id % 3 == 0) {
-    digitalWrite(red_led, HIGH); 
-    digitalWrite(yellow_led, LOW); 
-    digitalWrite(green_led, LOW); 
+    overwriteStoplight(stoplight1, HIGH, LOW, LOW);
+    setupStoplight(stoplight1);
   } else if (id % 3 == 1) {
-    digitalWrite(red_led, LOW); 
-    digitalWrite(yellow_led, HIGH); 
-    digitalWrite(green_led, LOW); 
+    overwriteStoplight(stoplight1, LOW, HIGH, LOW);
+    setupStoplight(stoplight1);
   } else if (id % 3 == 2) {
-    digitalWrite(red_led, LOW); 
-    digitalWrite(yellow_led, LOW); 
-    digitalWrite(green_led, HIGH); 
+    overwriteStoplight(stoplight1, LOW, LOW, HIGH);
+    setupStoplight(stoplight1);
   }
 }
 
