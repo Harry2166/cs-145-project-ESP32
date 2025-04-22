@@ -84,7 +84,7 @@ void accessJokeAPI(StaticJsonDocument<1024> &doc){
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED && !isConnected) {
-    // Serial.println("Connected");
+    Serial.println("Connected");
     digitalWrite(LED_BUILTIN, HIGH);
     isConnected = true;
   }
@@ -112,7 +112,10 @@ void loop() {
 
     } else {
       Serial.println("HTTP request err");
+      isConnected = false;
     }
     delay(10000); // delay of ten seconds after every access 
+    Serial.println("10 second delay done");
   }
+  Serial.println("loop will now repeat");
 }
