@@ -56,15 +56,16 @@ void setup() {
 
 }
 
-void turnIntoJsonDocument(String payload, StaticJsonDocument<1024> &doc){
+void turnIntoJsonDocument(String payload, JsonDocument &doc){
   char json[1024];
+  Serial.println(payload);
   payload.replace("\n", "");
   payload.trim();
   payload.toCharArray(json, 1024);
   deserializeJson(doc, json);
 }
 
-void accessJokeAPI(StaticJsonDocument<1024> &doc){
+void accessJokeAPI(JsonDocument &doc){
   int id = doc["id"];
   const char* setup = doc["setup"];
   const char* delivery = doc["delivery"];
@@ -106,7 +107,7 @@ void loop() {
       delay(1000);
       digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 
-      StaticJsonDocument<1024> doc;
+      JsonDocument doc;
       turnIntoJsonDocument(payload, doc);
       accessJokeAPI(doc);
 
