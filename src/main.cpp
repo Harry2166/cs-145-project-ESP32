@@ -34,14 +34,7 @@ void overwriteStoplight(Stoplight &stoplight, int red_status, int yellow_status,
   stoplight.green_led_status = green_status;
 }
 
-void setup() {
-  Serial.begin(921600);
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(stoplight1.red_led, OUTPUT);
-  pinMode(stoplight1.yellow_led, OUTPUT);
-  pinMode(stoplight1.green_led, OUTPUT);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
+void startingStoplightSetup(Stoplight &stoplight) {
   overwriteStoplight(stoplight1, HIGH, LOW, LOW);
   setupStoplight(stoplight1);
   delay(500);
@@ -53,6 +46,17 @@ void setup() {
   delay(500);
   overwriteStoplight(stoplight1, LOW, LOW, LOW);
   setupStoplight(stoplight1);
+}
+
+void setup() {
+  Serial.begin(921600);
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(stoplight1.red_led, OUTPUT);
+  pinMode(stoplight1.yellow_led, OUTPUT);
+  pinMode(stoplight1.green_led, OUTPUT);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  startingStoplightSetup(stoplight1);
 
 }
 
