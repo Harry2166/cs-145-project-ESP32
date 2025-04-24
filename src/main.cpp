@@ -14,7 +14,7 @@ struct Stoplight {
   int green_led_status;
 };
 
-bool isConnected = false;
+// bool isConnected = false;
 HTTPClient client;
 // const byte red_led = 32;
 // const byte yellow_led = 25;
@@ -88,39 +88,47 @@ void accessJokeAPI(JsonDocument &doc){
 }
 
 void loop() {
-  if (WiFi.status() == WL_CONNECTED && !isConnected) {
-    Serial.println("Connected");
-    digitalWrite(LED_BUILTIN, HIGH);
-    isConnected = true;
-  }
+  overwriteStoplight(stoplight1, HIGH, LOW, LOW);
+  setupStoplight(stoplight1);
+  delay(5000);
+  Serial.println("first 5 seconds over");
+  overwriteStoplight(stoplight1, LOW, LOW, LOW);
+  setupStoplight(stoplight1);
+  delay(5000);
+  Serial.println("second 5 seconds over");
+  // if (WiFi.status() == WL_CONNECTED && !isConnected) {
+  //   Serial.println("Connected");
+  //   digitalWrite(LED_BUILTIN, HIGH);
+  //   isConnected = true;
+  // }
 
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("...");
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-    delay(1000);
-    isConnected = false;
-  }
+  // if (WiFi.status() != WL_CONNECTED) {
+  //   Serial.println("...");
+  //   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  //   delay(1000);
+  //   isConnected = false;
+  // }
 
-  if (isConnected){
-    client.begin(URL);
-    int httpCode = client.GET();
-    if (httpCode > 0) {
-      digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-      delay(1000);
-      String payload = client.getString();
-      delay(1000);
-      digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  // if (isConnected){
+  //   client.begin(URL);
+  //   int httpCode = client.GET();
+  //   if (httpCode > 0) {
+  //     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  //     delay(1000);
+  //     String payload = client.getString();
+  //     delay(1000);
+  //     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 
-      JsonDocument doc;
-      turnIntoJsonDocument(payload, doc);
-      accessJokeAPI(doc);
+  //     JsonDocument doc;
+  //     turnIntoJsonDocument(payload, doc);
+  //     accessJokeAPI(doc);
 
-    } else {
-      Serial.println("HTTP request err");
-      isConnected = false;
-    }
-    delay(10000); // delay of ten seconds after every access 
-    Serial.println("10 second delay done");
-  }
-  Serial.println("loop will now repeat");
+  //   } else {
+  //     Serial.println("HTTP request err");
+  //     isConnected = false;
+  //   }
+  //   delay(10000); // delay of ten seconds after every access 
+  //   Serial.println("10 second delay done");
+  // }
+  // Serial.println("loop will now repeat");
 }
