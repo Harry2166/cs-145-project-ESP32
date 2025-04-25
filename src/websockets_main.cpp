@@ -70,7 +70,7 @@
 
 //   // TODO: CHANGE THIS IN ACCORDANCE WITH THE PYTHON WEBSOCKET SERVER
 //   // Serial.println("Connecting to ws");
-//   // webSocket.begin("192.168.1.1", 8765, "/"); 
+//   // webSocket.beginSSL(WS_HOST, WS_PORT, WS_URL, "", "wss"); 
 // //   if (webSocket.begin("192.168.1.1", 8765, "/")) {
 // //     Serial.println("WebSocket connection successful!");
 // //   } else {
