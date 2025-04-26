@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat - Client {{ client|upper }}</title>
+</head>
+<body>
+    <h1>Messages for Client {{ client|upper }}</h1>
+    <ul id="messages">
+        {% for message in messages %}
+            <li>
+                <strong>{{ message.sender }}:</strong> {{ message.content }} <em>({{ message.timestamp }})</em>
+            </li>
+        {% endfor %}
+    </ul>
+    <form id="messageForm">
+        {% csrf_token %}
+        <textarea name="content" placeholder="Type your message here"></textarea>
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        const client = "{{ client }}";
+        const chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/chat/' + client + '/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            const message = data.message;
+
+            console.log("data:", data);
+
+            // Print the message to the console
+            console.log("New message received:", message);
+
+            // Append the message to the list
+            const messages = document.getElementById('messages');
+            if (messages) {
+                const li = document.createElement('li');
+                li.textContent = message;
+                messages.appendChild(li);
+            } else {
+                console.error("Messages container not found!");
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error("Chat socket closed unexpectedly");
+        };
+
+        document.getElementById('messageForm').onsubmit = function(e) {
+            e.preventDefault();
+            const messageInput = document.querySelector('textarea');
+            const message = messageInput.value;
+
+            // Send the message via WebSocket
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+
+            // Clear the input field
+            messageInput.value = '';
+        };
+    </script>
+</body>
+</html>
