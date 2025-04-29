@@ -50,6 +50,12 @@
 //     setupStoplight(stoplight);
 // }
 
+// void setStoplightOutputPin(Stoplight &stoplight){
+//     pinMode(stoplight.red_led, OUTPUT);
+//     pinMode(stoplight.yellow_led, OUTPUT);
+//     pinMode(stoplight.green_led, OUTPUT);
+// }
+
 // void setup(){
 //     Serial.begin(921600);
 //     pinMode(LED_BUILTIN, OUTPUT);
