@@ -19,7 +19,7 @@ HTTPClient client;
 // const byte red_led = 32;
 // const byte yellow_led = 25;
 // const byte green_led = 26;
-struct Stoplight stoplight1 = {0, 32, 25, 26, HIGH, LOW, LOW};
+struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, LOW, LOW};
 // struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, HIGH};
 
 void setupStoplight(Stoplight &stoplight){
@@ -88,14 +88,22 @@ void accessJokeAPI(JsonDocument &doc){
 }
 
 void loop() {
-  overwriteStoplight(stoplight1, HIGH, LOW, LOW);
+  overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
   setupStoplight(stoplight1);
+  Serial.println("red");
   delay(5000);
-  Serial.println("first 5 seconds over");
-  overwriteStoplight(stoplight1, LOW, LOW, LOW);
+  overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
   setupStoplight(stoplight1);
+  Serial.println("yellow");
   delay(5000);
-  Serial.println("second 5 seconds over");
+  overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
+  setupStoplight(stoplight1);
+  Serial.println("green");
+  delay(5000);
+  overwriteStoplight(stoplight1, HIGH, HIGH, HIGH);
+  setupStoplight(stoplight1);
+  Serial.println("off");
+  delay(5000);
   // if (WiFi.status() == WL_CONNECTED && !isConnected) {
   //   Serial.println("Connected");
   //   digitalWrite(LED_BUILTIN, HIGH);
