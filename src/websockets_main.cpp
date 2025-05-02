@@ -15,12 +15,19 @@
 //     int green_led_status;
 // };
 
-// bool isConnected = false;
+// enum State {
+//     CONNECTED,
+//     DISCONNECTED
+// };
+
+
 // HTTPClient client;
 // JsonDocument doc;
 // struct Stoplight stoplight1 = {0, 32, 25, 26, HIGH, LOW, LOW};
 // // struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, HIGH};
 // WebSocketsClient webSocket;
+// enum State currentState = DISCONNECTED;
+// int counter = 0;
 
 // void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
 
@@ -83,19 +90,36 @@
 // void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
 //     switch (type) {
 //         case WStype_CONNECTED:
-//         Serial.println("WebSocket client connected");
-//         break;
+//             Serial.println("WebSocket client connected");
+//             break;
 //         case WStype_DISCONNECTED:
-//         Serial.println("WebSocket client disconnected");
-//         break;
+//             Serial.println("WebSocket client disconnected");
+//             break;
 //         case WStype_TEXT:
-//         Serial.print("Received: ");
-//         Serial.println((char*)payload);
-//         // parse signal here
-//         break;
+//             Serial.print("Received: ");
+//             Serial.println((char*)payload);
+//             // parse signal here
+//             break;
+//         default:
+//             break;
 //     }
 // }
 
 // void loop(){
 //     webSocket.loop();
+//     if (currentState == DISCONNECTED) {
+//         switch(counter % 3) {
+//             case 0:
+//                 overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
+//                 break;
+//             case 1:
+//                 overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
+//                 break;
+//             case 2:
+//                 overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
+//                 break;
+//         }
+//         setupStoplight(stoplight1);
+//         counter += 1;
+//     }
 // }

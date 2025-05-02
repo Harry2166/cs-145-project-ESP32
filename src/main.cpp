@@ -69,24 +69,6 @@ void turnIntoJsonDocument(String payload, JsonDocument &doc){
   deserializeJson(doc, json);
 }
 
-void accessJokeAPI(JsonDocument &doc){
-  int id = doc["id"];
-  const char* setup = doc["setup"];
-  const char* delivery = doc["delivery"];
-  Serial.println("[" + String(id) + "] " + String(setup) + " = " + String(delivery));
-  Serial.println(id);
-  if (id % 3 == 0) {
-    overwriteStoplight(stoplight1, HIGH, LOW, LOW);
-    setupStoplight(stoplight1);
-  } else if (id % 3 == 1) {
-    overwriteStoplight(stoplight1, LOW, HIGH, LOW);
-    setupStoplight(stoplight1);
-  } else if (id % 3 == 2) {
-    overwriteStoplight(stoplight1, LOW, LOW, HIGH);
-    setupStoplight(stoplight1);
-  }
-}
-
 void loop() {
   overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
   setupStoplight(stoplight1);
@@ -104,39 +86,4 @@ void loop() {
   setupStoplight(stoplight1);
   Serial.println("off");
   delay(5000);
-  // if (WiFi.status() == WL_CONNECTED && !isConnected) {
-  //   Serial.println("Connected");
-  //   digitalWrite(LED_BUILTIN, HIGH);
-  //   isConnected = true;
-  // }
-
-  // if (WiFi.status() != WL_CONNECTED) {
-  //   Serial.println("...");
-  //   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-  //   delay(1000);
-  //   isConnected = false;
-  // }
-
-  // if (isConnected){
-  //   client.begin(URL);
-  //   int httpCode = client.GET();
-  //   if (httpCode > 0) {
-  //     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-  //     delay(1000);
-  //     String payload = client.getString();
-  //     delay(1000);
-  //     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-
-  //     JsonDocument doc;
-  //     turnIntoJsonDocument(payload, doc);
-  //     accessJokeAPI(doc);
-
-  //   } else {
-  //     Serial.println("HTTP request err");
-  //     isConnected = false;
-  //   }
-  //   delay(10000); // delay of ten seconds after every access 
-  //   Serial.println("10 second delay done");
-  // }
-  // Serial.println("loop will now repeat");
 }
