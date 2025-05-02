@@ -81,33 +81,19 @@
 // }
 
 // void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
-//     if(type == WStype_TEXT) {
-//         DeserializationError err = deserializeJson(doc, payload);
-//         if (err) {
-//         Serial.println("Deserialization failed D:");
-//         Serial.println(err.c_str());
-//         return;
-//         }
-//         // Serial.println(doc);
-//         int signal = doc["stoplight"];
-//         if (signal == 0) {
-//         overwriteStoplight(stoplight1, HIGH, LOW, LOW);
-//         setupStoplight(stoplight1);
-//         } else if (signal == 1) {
-//         overwriteStoplight(stoplight1, LOW, HIGH, LOW);
-//         setupStoplight(stoplight1);
-//         } else if (signal == 2) {
-//         overwriteStoplight(stoplight1, LOW, LOW, HIGH);
-//         setupStoplight(stoplight1);
-//         } else {
-//         overwriteStoplight(stoplight1, LOW, LOW, LOW);
-//         setupStoplight(stoplight1);
-//         }
+//     switch (type) {
+//         case WStype_CONNECTED:
+//         Serial.println("WebSocket client connected");
+//         break;
+//         case WStype_DISCONNECTED:
+//         Serial.println("WebSocket client disconnected");
+//         break;
+//         case WStype_TEXT:
+//         Serial.print("Received: ");
+//         Serial.println((char*)payload);
+//         // parse signal here
+//         break;
 //     }
-
-//     // Serial.println(doc);
-//     webSocket.sendTXT("{\"stats\":\"OK\"}");
-
 // }
 
 // void loop(){
