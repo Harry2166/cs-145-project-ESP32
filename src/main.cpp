@@ -3,6 +3,7 @@
 #include <Private.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <WebSocketsClient.h>
 
 struct Stoplight {
   int id;
@@ -14,13 +15,12 @@ struct Stoplight {
   int green_led_status;
 };
 
-// bool isConnected = false;
 HTTPClient client;
-// const byte red_led = 32;
-// const byte yellow_led = 25;
-// const byte green_led = 26;
 struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, LOW, LOW};
 // struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, HIGH};
+WebSocketsClient webSocket;
+
+void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
 
 void setupStoplight(Stoplight &stoplight){
   digitalWrite(stoplight.red_led, stoplight.red_led_status);
@@ -51,39 +51,49 @@ void startingStoplightSetup(Stoplight &stoplight) {
 void setup() {
   Serial.begin(921600);
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(stoplight1.red_led, OUTPUT);
-  pinMode(stoplight1.yellow_led, OUTPUT);
-  pinMode(stoplight1.green_led, OUTPUT);
+  // pinMode(stoplight1.red_led, OUTPUT);
+  // pinMode(stoplight1.yellow_led, OUTPUT);
+  // pinMode(stoplight1.green_led, OUTPUT);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  startingStoplightSetup(stoplight1);
+  // startingStoplightSetup(stoplight1);
+  Serial.println("Connecting to ws");
+  webSocket.begin("tabipo.xyz", 80, "/ws/simulation/"); 
+  webSocket.onEvent(webSocketEvent);
+  webSocket.setReconnectInterval(5000);
 
-}
-
-void turnIntoJsonDocument(String payload, JsonDocument &doc){
-  char json[1024];
-  Serial.println(payload);
-  payload.replace("\n", "");
-  payload.trim();
-  payload.toCharArray(json, 1024);
-  deserializeJson(doc, json);
 }
 
 void loop() {
-  overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
-  setupStoplight(stoplight1);
-  Serial.println("red");
-  delay(5000);
-  overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
-  setupStoplight(stoplight1);
-  Serial.println("yellow");
-  delay(5000);
-  overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
-  setupStoplight(stoplight1);
-  Serial.println("green");
-  delay(5000);
-  overwriteStoplight(stoplight1, HIGH, HIGH, HIGH);
-  setupStoplight(stoplight1);
-  Serial.println("off");
-  delay(5000);
+  webSocket.loop();
+  // overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
+  // setupStoplight(stoplight1);
+  // Serial.println("red");
+  // delay(5000);
+  // overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
+  // setupStoplight(stoplight1);
+  // Serial.println("yellow");
+  // delay(5000);
+  // overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
+  // setupStoplight(stoplight1);
+  // Serial.println("green");
+  // delay(5000);
+}
+
+void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
+  switch (type) {
+    case WStype_CONNECTED:
+        Serial.println("WebSocket client connected");
+        break;
+    case WStype_DISCONNECTED:
+        Serial.println("WebSocket client disconnected");
+        break;
+    case WStype_TEXT:
+        Serial.print("Received: ");
+        Serial.println((char*)payload);
+        // insert parsing shit here
+        break;
+    default:
+        break;
+  }
 }
