@@ -3,10 +3,9 @@
 
 #define WIFI_SSID "wifi-ssid"
 #define WIFI_PASSWORD "wifi-password"
-#define URL "api-url"
-#define WS_HOST ""
-#define WS_PORT ""
-#define WS_URL ""
-#define STOPLIGHT_ID 69
+#define STOPLIGHT_ID "69" // replace with actual stoplight ID
+#define WS_HOST "domain-name.com"
+#define WS_PORT 80 // 80 for ws, 443 for wss
+#define WS_URL "/url-path/"
 
 #endif
