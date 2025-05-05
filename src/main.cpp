@@ -26,6 +26,9 @@ struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, LOW, LOW};
 WebSocketsClient webSocket;
 enum State currentState = INACTIVE;
 int counter = 0;
+unsigned long lastUpdateTime = 0;
+const unsigned long onLightInterval= 5000; 
+const unsigned long onYellowLightInterval= 2500; 
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
 
@@ -77,28 +80,44 @@ void setup() {
 
 void loop() {
   webSocket.loop();
-  if (currentState == INACTIVE) {
-    switch(counter % 3) {
-    case 0:
-      overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
-      break;
-    case 1:
-      overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
-      break;
-    case 2:
-      overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
-      break;
-    }
+  unsigned long currentTime = millis();
+  if (
+    (
+      currentState == INACTIVE && 
+      ((counter % 4) % 2 == 1) && 
+      currentTime - lastUpdateTime >= onLightInterval
+    ) ||
+    (
+      currentState == INACTIVE && 
+      ((counter % 4) % 2 == 0) && 
+      currentTime - lastUpdateTime >= onYellowLightInterval
+    ) 
+  ) {
+    switch(counter % 4) {
+      case 0:
+        overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
+        // Serial.println("red");
+        break;
+      case 1: case 3:
+        overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
+        // Serial.println("yellow");
+        break;
+      case 2:
+        overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
+        // Serial.println("green");
+        break;
+      }
     lightUpStoplight(stoplight1);
     counter += 1;
+    lastUpdateTime = currentTime;
   }
-  delay(1000);
 }
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
   switch (type) {
     case WStype_CONNECTED:
-        Serial.println("connected to" + String(WS_HOST) + String(WS_URL));
+        Serial.println("connected to ws://" + String(WS_HOST) + String(WS_URL));
+        digitalWrite(LED_BUILTIN, HIGH); 
         webSocket.sendTXT("{\"message\": \"ACK\"}");
         break;
     case WStype_DISCONNECTED:
