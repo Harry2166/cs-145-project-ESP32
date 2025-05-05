@@ -48,17 +48,17 @@ void setupStoplight(Stoplight &stoplight) {
 }
 
 void startingStoplightSetup(Stoplight &stoplight) {
-  overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
-  lightUpStoplight(stoplight1);
+  overwriteStoplight(stoplight, LOW, HIGH, HIGH);
+  lightUpStoplight(stoplight);
   delay(500);
-  overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
-  lightUpStoplight(stoplight1);
+  overwriteStoplight(stoplight, HIGH, LOW, HIGH);
+  lightUpStoplight(stoplight);
   delay(500);
-  overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
-  lightUpStoplight(stoplight1);
+  overwriteStoplight(stoplight, HIGH, HIGH, LOW);
+  lightUpStoplight(stoplight);
   delay(500);
-  overwriteStoplight(stoplight1, HIGH, HIGH, HIGH);
-  lightUpStoplight(stoplight1);
+  overwriteStoplight(stoplight, HIGH, HIGH, HIGH);
+  lightUpStoplight(stoplight);
 }
 
 void setup() {
