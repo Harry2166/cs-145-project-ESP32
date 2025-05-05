@@ -17,7 +17,7 @@ struct Stoplight {
 
 HTTPClient client;
 struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, LOW, LOW};
-// struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, HIGH};
+// struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, LOW};
 WebSocketsClient webSocket;
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
@@ -58,7 +58,7 @@ void setup() {
 
   // startingStoplightSetup(stoplight1);
   Serial.println("Connecting to ws");
-  webSocket.begin("tabipo.xyz", 80, "/ws/simulation/"); 
+  webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
   webSocket.onEvent(webSocketEvent);
   webSocket.setReconnectInterval(5000);
 
@@ -84,6 +84,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
   switch (type) {
     case WStype_CONNECTED:
         Serial.println("WebSocket client connected");
+        webSocket.sendTXT("{\"message\": \"ACK\"}");
         break;
     case WStype_DISCONNECTED:
         Serial.println("WebSocket client disconnected");
