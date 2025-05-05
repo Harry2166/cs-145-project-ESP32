@@ -5,8 +5,8 @@ This is the ESP32 code dedicated to the taking in the stoplight information from
 1. [PlatformIO extension for VSCode](https://platformio.org/install/ide?install=vscode)
 
 ## Steps
-1. Within the `/src/` folder, copy the `_Private.h` file and rename the new copy into `Private.h`
-2. Fill up `Private.h` with the appropriate credentials of the WiFi, API URL, and other necessary information.
+1. Within the `/lib/` folder, copy the `_Private.h` file and rename the new copy into `Private.h`
+2. Fill up `Private.h` with the appropriate credentials of the WiFi, Websocket URL, and other necessary information.
 
 ## Team
 This project was developed in fulfillment of the requirements for CS145.
