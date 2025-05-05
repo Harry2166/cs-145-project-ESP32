@@ -15,14 +15,21 @@ struct Stoplight {
   int green_led_status;
 };
 
+enum State {
+  ACTIVE,
+  INACTIVE
+};
+
 HTTPClient client;
 struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, LOW, LOW};
 // struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, LOW};
 WebSocketsClient webSocket;
+enum State currentState = INACTIVE;
+int counter = 0;
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
 
-void setupStoplight(Stoplight &stoplight){
+void lightUpStoplight(Stoplight &stoplight){
   digitalWrite(stoplight.red_led, stoplight.red_led_status);
   digitalWrite(stoplight.yellow_led, stoplight.yellow_led_status);
   digitalWrite(stoplight.green_led, stoplight.green_led_status);
@@ -34,29 +41,33 @@ void overwriteStoplight(Stoplight &stoplight, int red_status, int yellow_status,
   stoplight.green_led_status = green_status;
 }
 
+void setupStoplight(Stoplight &stoplight) {
+  pinMode(stoplight.red_led, OUTPUT);
+  pinMode(stoplight.yellow_led, OUTPUT);
+  pinMode(stoplight.green_led, OUTPUT);
+}
+
 void startingStoplightSetup(Stoplight &stoplight) {
-  overwriteStoplight(stoplight1, HIGH, LOW, LOW);
-  setupStoplight(stoplight1);
+  overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
+  lightUpStoplight(stoplight1);
   delay(500);
-  overwriteStoplight(stoplight1, LOW, HIGH, LOW);
-  setupStoplight(stoplight1);
+  overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
+  lightUpStoplight(stoplight1);
   delay(500);
-  overwriteStoplight(stoplight1, LOW, LOW, HIGH);
-  setupStoplight(stoplight1);
+  overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
+  lightUpStoplight(stoplight1);
   delay(500);
-  overwriteStoplight(stoplight1, LOW, LOW, LOW);
-  setupStoplight(stoplight1);
+  overwriteStoplight(stoplight1, HIGH, HIGH, HIGH);
+  lightUpStoplight(stoplight1);
 }
 
 void setup() {
   Serial.begin(921600);
   pinMode(LED_BUILTIN, OUTPUT);
-  // pinMode(stoplight1.red_led, OUTPUT);
-  // pinMode(stoplight1.yellow_led, OUTPUT);
-  // pinMode(stoplight1.green_led, OUTPUT);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  // startingStoplightSetup(stoplight1);
+  setupStoplight(stoplight1);
+  startingStoplightSetup(stoplight1);
   Serial.println("Connecting to ws");
   webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
   webSocket.onEvent(webSocketEvent);
@@ -66,24 +77,28 @@ void setup() {
 
 void loop() {
   webSocket.loop();
-  // overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
-  // setupStoplight(stoplight1);
-  // Serial.println("red");
-  // delay(5000);
-  // overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
-  // setupStoplight(stoplight1);
-  // Serial.println("yellow");
-  // delay(5000);
-  // overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
-  // setupStoplight(stoplight1);
-  // Serial.println("green");
-  // delay(5000);
+  if (currentState == INACTIVE) {
+    switch(counter % 3) {
+    case 0:
+      overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
+      break;
+    case 1:
+      overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
+      break;
+    case 2:
+      overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
+      break;
+    }
+    lightUpStoplight(stoplight1);
+    counter += 1;
+  }
+  delay(1000);
 }
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
   switch (type) {
     case WStype_CONNECTED:
-        Serial.println("WebSocket client connected");
+        Serial.println("connected to" + String(WS_HOST) + String(WS_URL));
         webSocket.sendTXT("{\"message\": \"ACK\"}");
         break;
     case WStype_DISCONNECTED:
