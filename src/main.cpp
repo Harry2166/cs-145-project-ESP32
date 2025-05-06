@@ -33,9 +33,15 @@ const unsigned long onYellowLightInterval= 2500;
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
 
 void lightUpStoplight(Stoplight &stoplight){
-  digitalWrite(stoplight.red_led, stoplight.red_led_status);
-  digitalWrite(stoplight.yellow_led, stoplight.yellow_led_status);
-  digitalWrite(stoplight.green_led, stoplight.green_led_status);
+  if (!LED_MODE) {
+    digitalWrite(stoplight.red_led, stoplight.red_led_status);
+    digitalWrite(stoplight.yellow_led, stoplight.yellow_led_status);
+    digitalWrite(stoplight.green_led, stoplight.green_led_status);
+  } else {
+    digitalWrite(stoplight.red_led, !stoplight.red_led_status);
+    digitalWrite(stoplight.yellow_led, !stoplight.yellow_led_status);
+    digitalWrite(stoplight.green_led, !stoplight.green_led_status);
+  }
 }
 
 void overwriteStoplight(Stoplight &stoplight, int red_status, int yellow_status, int green_status) {
