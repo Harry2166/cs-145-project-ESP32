@@ -29,6 +29,7 @@ int counter = 0;
 unsigned long lastUpdateTime = 0;
 const unsigned long onLightInterval= 5000; 
 const unsigned long onYellowLightInterval= 2500; 
+JsonDocument doc;
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
 
@@ -84,6 +85,15 @@ void setup() {
 
 }
 
+void turnIntoJsonDocument(String payload, JsonDocument &doc){
+  char json[1024];
+  Serial.println(payload);
+  payload.replace("\n", "");
+  payload.trim();
+  payload.toCharArray(json, 1024);
+  deserializeJson(doc, json);
+}
+
 void loop() {
   webSocket.loop();
   unsigned long currentTime = millis();
@@ -132,7 +142,19 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
     case WStype_TEXT:
         Serial.print("Received: ");
         Serial.println((char*)payload);
-        // insert parsing shit here
+
+        // parsing JSON here
+        turnIntoJsonDocument((char*)payload, doc);
+        int groupID = doc["groupID"];
+        int stoplightID = doc["stoplightID"];
+
+        if (groupID != STOPLIGHT_GROUP_ID) {
+          currentState = INACTIVE;
+        } else {
+          currentState = ACTIVE;
+        } 
+
+
         break;
     default:
         break;
