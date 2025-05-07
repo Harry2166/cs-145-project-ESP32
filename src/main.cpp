@@ -4,6 +4,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
+#include <map>
 
 struct Stoplight {
   int id;
@@ -20,16 +21,22 @@ enum State {
   INACTIVE
 };
 
+// Global Variables
 HTTPClient client;
 struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, LOW, LOW};
-// struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, LOW};
-WebSocketsClient webSocket;
+struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, LOW};
 enum State currentState = INACTIVE;
+WebSocketsClient webSocket;
 int counter = 0;
+int stoplightID;
 unsigned long lastUpdateTime = 0;
 const unsigned long onLightInterval= 5000; 
 const unsigned long onYellowLightInterval= 2500; 
 JsonDocument doc;
+std::map<int, Stoplight> stoplightsMap = {
+  {stoplight1.id, stoplight1}, 
+  {stoplight2.id, stoplight2}
+};
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
 
@@ -126,7 +133,7 @@ void loop() {
     lightUpStoplight(stoplight1);
     counter += 1;
     lastUpdateTime = currentTime;
-  }
+  } 
 }
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
@@ -148,7 +155,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
       // parsing JSON here
       turnIntoJsonDocument((char*)payload, doc);
       int groupID = doc["groupID"];
-      int stoplightID = doc["stoplightID"];
+      stoplightID = doc["stoplightID"];
 
       if (groupID != STOPLIGHT_GROUP_ID) {
         currentState = INACTIVE;
