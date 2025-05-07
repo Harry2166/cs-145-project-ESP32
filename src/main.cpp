@@ -131,32 +131,34 @@ void loop() {
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
   switch (type) {
-    case WStype_CONNECTED:
-        Serial.println("connected to ws://" + String(WS_HOST) + String(WS_URL));
-        digitalWrite(LED_BUILTIN, HIGH); 
-        webSocket.sendTXT("{\"message\": \"ACK\"}");
-        break;
-    case WStype_DISCONNECTED:
-        Serial.println("WebSocket client disconnected");
-        break;
-    case WStype_TEXT:
-        Serial.print("Received: ");
-        Serial.println((char*)payload);
+    case WStype_CONNECTED: {
+      Serial.println("connected to ws://" + String(WS_HOST) + String(WS_URL));
+      digitalWrite(LED_BUILTIN, HIGH); 
+      webSocket.sendTXT("{\"message\": \"ACK\"}");
+      break;
+    }
+    case WStype_DISCONNECTED: {
+      Serial.println("WebSocket client disconnected");
+      break;
+    }
+    case WStype_TEXT: {
+      Serial.print("Received: ");
+      Serial.println((char*)payload);
 
-        // parsing JSON here
-        turnIntoJsonDocument((char*)payload, doc);
-        int groupID = doc["groupID"];
-        int stoplightID = doc["stoplightID"];
+      // parsing JSON here
+      turnIntoJsonDocument((char*)payload, doc);
+      int groupID = doc["groupID"];
+      int stoplightID = doc["stoplightID"];
 
-        if (groupID != STOPLIGHT_GROUP_ID) {
-          currentState = INACTIVE;
-        } else {
-          currentState = ACTIVE;
-        } 
-
-
-        break;
-    default:
-        break;
+      if (groupID != STOPLIGHT_GROUP_ID) {
+        currentState = INACTIVE;
+      } else {
+        currentState = ACTIVE;
+      } 
+      break;
+    }
+    default: {
+      break;
+    }
   }
 }
