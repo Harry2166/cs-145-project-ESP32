@@ -27,7 +27,7 @@ struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, LOW, LOW};
 struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, LOW};
 enum State currentState = INACTIVE;
 WebSocketsClient webSocket;
-int counter = 0;
+int counter = 0; // this counter is for the back and forth between red, yellow, and green
 int stoplightID;
 unsigned long lastUpdateTime = 0;
 const unsigned long onLightInterval= 5000; 
@@ -101,9 +101,7 @@ void turnIntoJsonDocument(String payload, JsonDocument &doc){
   deserializeJson(doc, json);
 }
 
-void loop() {
-  webSocket.loop();
-  unsigned long currentTime = millis();
+void inactiveStoplight(unsigned long currentTime) {
   if (
     (
       currentState == INACTIVE && 
@@ -119,21 +117,29 @@ void loop() {
     switch(counter % 4) {
       case 0:
         overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
-        // Serial.println("red");
+        overwriteStoplight(stoplight2, HIGH, HIGH, LOW);
         break;
       case 1: case 3:
         overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
-        // Serial.println("yellow");
+        overwriteStoplight(stoplight2, HIGH, LOW, HIGH);
         break;
       case 2:
         overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
-        // Serial.println("green");
+        overwriteStoplight(stoplight2, LOW, HIGH, HIGH);
         break;
       }
     lightUpStoplight(stoplight1);
     counter += 1;
     lastUpdateTime = currentTime;
   } 
+}
+
+void loop() {
+  webSocket.loop();
+  unsigned long currentTime = millis();
+  if (currentState == INACTIVE) {
+    inactiveStoplight(currentTime);
+  }
 }
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
@@ -154,14 +160,17 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
 
       // parsing JSON here
       turnIntoJsonDocument((char*)payload, doc);
+      int status = doc["status"];
       int groupID = doc["groupID"];
       stoplightID = doc["stoplightID"];
 
-      if (groupID != STOPLIGHT_GROUP_ID) {
-        currentState = INACTIVE;
-      } else {
+      if (status == 1 && groupID == STOPLIGHT_GROUP_ID) {
         currentState = ACTIVE;
+        counter = 1;
+      } else {
+        currentState = INACTIVE;
       } 
+      webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\" : \"" + String(STOPLIGHT_GROUP_ID) + "}");
       break;
     }
     default: {
