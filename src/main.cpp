@@ -105,20 +105,6 @@ void putAllStoplightCountersToStart() {
   }
 }
 
-void setup() {
-  Serial.begin(921600);
-  pinMode(LED_BUILTIN, OUTPUT);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  setupStoplight(stoplight1);
-  startingStoplightSetup(stoplight1);
-  Serial.println("Connecting to ws");
-  webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
-  webSocket.onEvent(webSocketEvent);
-  webSocket.setReconnectInterval(5000);
-
-}
-
 void turnIntoJsonDocument(String payload, JsonDocument &doc){
   char json[1024];
   Serial.println(payload);
@@ -157,6 +143,19 @@ void activeStoplight(unsigned long currentTime) {
   if (currentTime - lastUpdateTime >= onYellowLightInterval) { // switching to a non-yellow color
     lastUpdateTime = currentTime;
   }
+}
+
+void setup() {
+  Serial.begin(921600);
+  pinMode(LED_BUILTIN, OUTPUT);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  setupStoplight(stoplight1);
+  startingStoplightSetup(stoplight1);
+  Serial.println("Connecting to ws");
+  webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
+  webSocket.onEvent(webSocketEvent);
+  webSocket.setReconnectInterval(5000);
 }
 
 void loop() {
