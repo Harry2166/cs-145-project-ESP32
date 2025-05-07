@@ -6,6 +6,11 @@
 #include <WebSocketsClient.h>
 #include <map>
 
+/*
+stoplight 1: red green yellow
+stoplight2: green yellow red
+*/
+
 struct Stoplight {
   int id;
   const byte red_led;
@@ -14,6 +19,22 @@ struct Stoplight {
   int red_led_status;
   int yellow_led_status;
   int green_led_status;
+  int counter; // this counter is for the back and forth between red, yellow, and green
+  int startingCounter; // this counter is to setup the default setup again
+
+  // constructor for building a stoplight at default -> meaning that you set values for id, red, yellow, etc. but the statuses (stati?) are HIGH 
+  Stoplight(int _id, byte _red, byte _yellow, byte _green, int _counter = 0, int _startingCounter = 0)
+    : id(_id),
+      red_led(_red),
+      yellow_led(_yellow),
+      green_led(_green),
+      red_led_status(HIGH),
+      yellow_led_status(HIGH),
+      green_led_status(HIGH),
+      counter(_counter),
+      startingCounter(_startingCounter)
+  {}
+
 };
 
 enum State {
@@ -23,19 +44,19 @@ enum State {
 
 // Global Variables
 HTTPClient client;
-struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, LOW, LOW};
-struct Stoplight stoplight2 = {1, 27, 14, 12, LOW, LOW, LOW};
+struct Stoplight stoplight1 = {0, 32, 25, 26, 0, 0};
+struct Stoplight stoplight2 = {1, 27, 14, 12, 2, 2};
 enum State currentState = INACTIVE;
 WebSocketsClient webSocket;
-int counter = 0; // this counter is for the back and forth between red, yellow, and green
 int stoplightID;
 unsigned long lastUpdateTime = 0;
-const unsigned long onLightInterval= 5000; 
-const unsigned long onYellowLightInterval= 2500; 
+const unsigned long onRedLightInterval= 2000; 
+const unsigned long onYellowLightInterval= 1000; 
+const unsigned long onGreenLightInterval= 3000; 
 JsonDocument doc;
-std::map<int, Stoplight> stoplightsMap = {
-  {stoplight1.id, stoplight1}, 
-  {stoplight2.id, stoplight2}
+std::map<int, Stoplight*> stoplightsMap = {
+  {stoplight1.id, &stoplight1}, 
+  {stoplight2.id, &stoplight2}
 };
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length);
@@ -78,6 +99,12 @@ void startingStoplightSetup(Stoplight &stoplight) {
   lightUpStoplight(stoplight);
 }
 
+void putAllStoplightCountersToStart() {
+  for (auto& pair : stoplightsMap) {
+    pair.second->counter = pair.second->startingCounter;
+  }
+}
+
 void setup() {
   Serial.begin(921600);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -101,44 +128,44 @@ void turnIntoJsonDocument(String payload, JsonDocument &doc){
   deserializeJson(doc, json);
 }
 
-void inactiveStoplight(unsigned long currentTime) {
-  if (
-    (
-      currentState == INACTIVE && 
-      ((counter % 4) % 2 == 1) && 
-      currentTime - lastUpdateTime >= onLightInterval
-    ) ||
-    (
-      currentState == INACTIVE && 
-      ((counter % 4) % 2 == 0) && 
-      currentTime - lastUpdateTime >= onYellowLightInterval
-    ) 
-  ) {
-    switch(counter % 4) {
-      case 0:
-        overwriteStoplight(stoplight1, LOW, HIGH, HIGH);
-        overwriteStoplight(stoplight2, HIGH, HIGH, LOW);
-        break;
-      case 1: case 3:
-        overwriteStoplight(stoplight1, HIGH, LOW, HIGH);
-        overwriteStoplight(stoplight2, HIGH, LOW, HIGH);
-        break;
-      case 2:
-        overwriteStoplight(stoplight1, HIGH, HIGH, LOW);
-        overwriteStoplight(stoplight2, LOW, HIGH, HIGH);
-        break;
-      }
-    lightUpStoplight(stoplight1);
-    counter += 1;
+// red -> green -> yellow
+//  0  ->   2   ->   1
+void inactiveStoplight(Stoplight &stoplight, unsigned long currentTime) {
+  if (stoplight.counter == 0 && currentTime - lastUpdateTime >= onYellowLightInterval) { // switching to red from yellow 
+    overwriteStoplight(stoplight, LOW, HIGH, HIGH);
+    stoplight.counter = 2;
+    lightUpStoplight(stoplight);
+  } else if (stoplight.counter == 1 && currentTime - lastUpdateTime >= onGreenLightInterval) { // switching to yellow from green 
+    overwriteStoplight(stoplight, HIGH, LOW, HIGH);
+    stoplight.counter = 1;
+    lightUpStoplight(stoplight);
+  } else if (stoplight.counter == 0 && currentTime - lastUpdateTime >= onRedLightInterval) { // switching to green from red 
+    overwriteStoplight(stoplight, HIGH, HIGH, LOW);
+    stoplight.counter = 0;
+    lightUpStoplight(stoplight);
+  }
+}
+
+void allInactiveStoplights(unsigned long currentTime) {
+  for (auto& pair : stoplightsMap) {
+    inactiveStoplight(*pair.second, currentTime);
+  }
+}
+
+
+void activeStoplight(unsigned long currentTime) {
+  if (currentTime - lastUpdateTime >= onYellowLightInterval) { // switching to a non-yellow color
     lastUpdateTime = currentTime;
-  } 
+  }
 }
 
 void loop() {
   webSocket.loop();
   unsigned long currentTime = millis();
   if (currentState == INACTIVE) {
-    inactiveStoplight(currentTime);
+    allInactiveStoplights(currentTime);
+  } else {
+    activeStoplight(currentTime);
   }
 }
 
@@ -166,11 +193,11 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
 
       if (status == 1 && groupID == STOPLIGHT_GROUP_ID) {
         currentState = ACTIVE;
-        counter = 1;
+        putAllStoplightCountersToStart();
       } else {
         currentState = INACTIVE;
       } 
-      webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\" : \"" + String(STOPLIGHT_GROUP_ID) + "}");
+      webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\": \"" + String(STOPLIGHT_GROUP_ID) + "}");
       break;
     }
     default: {
