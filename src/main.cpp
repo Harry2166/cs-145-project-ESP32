@@ -21,9 +21,10 @@ struct Stoplight {
   int green_led_status;
   int counter; // this counter is for the back and forth between red, yellow, and green
   int startingCounter; // this counter is to setup the default setup again
+  unsigned long lastUpdateTime;
 
   // constructor for building a stoplight at default -> meaning that you set values for id, red, yellow, etc. but the statuses (stati?) are HIGH 
-  Stoplight(int _id, byte _red, byte _yellow, byte _green, int _counter = 0, int _startingCounter = 0)
+  Stoplight(int _id, byte _red, byte _yellow, byte _green, int _counter = 0, int _startingCounter = 0, unsigned long _lastUpdateTime = 0)
     : id(_id),
       red_led(_red),
       yellow_led(_yellow),
@@ -32,7 +33,8 @@ struct Stoplight {
       yellow_led_status(HIGH),
       green_led_status(HIGH),
       counter(_counter),
-      startingCounter(_startingCounter)
+      startingCounter(_startingCounter),
+      lastUpdateTime(_lastUpdateTime)
   {}
 
 };
@@ -44,15 +46,15 @@ enum State {
 
 // Global Variables
 HTTPClient client;
-struct Stoplight stoplight1 = {0, 32, 25, 26, 0, 0};
-struct Stoplight stoplight2 = {1, 27, 14, 12, 2, 2};
+struct Stoplight stoplight1 = {0, 32, 25, 26, 1, 0}; // im letting it start from the one that is -1 from them (supposed to be 0,0)
+struct Stoplight stoplight2 = {1, 27, 14, 12, 0, 2}; // (supposed to be 2,2)
 enum State currentState = INACTIVE;
 WebSocketsClient webSocket;
 int stoplightID;
 unsigned long lastUpdateTime = 0;
-const unsigned long onRedLightInterval= 2000; 
-const unsigned long onYellowLightInterval= 1000; 
-const unsigned long onGreenLightInterval= 3000; 
+const unsigned long onRedLightInterval = 3500; // make it so that onRedLightInterval > onYellowLightInterval + onGreenLightInterval 
+const unsigned long onYellowLightInterval = 1000; 
+const unsigned long onGreenLightInterval = 2000; 
 JsonDocument doc;
 std::map<int, Stoplight*> stoplightsMap = {
   {stoplight1.id, &stoplight1}, 
@@ -117,18 +119,21 @@ void turnIntoJsonDocument(String payload, JsonDocument &doc){
 // red -> green -> yellow
 //  0  ->   2   ->   1
 void inactiveStoplight(Stoplight &stoplight, unsigned long currentTime) {
-  if (stoplight.counter == 0 && currentTime - lastUpdateTime >= onYellowLightInterval) { // switching to red from yellow 
+  if (stoplight.counter == 1 && currentTime - stoplight.lastUpdateTime >= onYellowLightInterval) { // switching to red from yellow 
     overwriteStoplight(stoplight, LOW, HIGH, HIGH);
-    stoplight.counter = 2;
+    stoplight.counter = 0;
     lightUpStoplight(stoplight);
-  } else if (stoplight.counter == 1 && currentTime - lastUpdateTime >= onGreenLightInterval) { // switching to yellow from green 
+    stoplight.lastUpdateTime = currentTime;
+  } else if (stoplight.counter == 2 && currentTime - stoplight.lastUpdateTime >= onGreenLightInterval) { // switching to yellow from green 
     overwriteStoplight(stoplight, HIGH, LOW, HIGH);
     stoplight.counter = 1;
     lightUpStoplight(stoplight);
-  } else if (stoplight.counter == 0 && currentTime - lastUpdateTime >= onRedLightInterval) { // switching to green from red 
+    stoplight.lastUpdateTime = currentTime;
+  } else if (stoplight.counter == 0 && currentTime - stoplight.lastUpdateTime >= onRedLightInterval) { // switching to green from red 
     overwriteStoplight(stoplight, HIGH, HIGH, LOW);
-    stoplight.counter = 0;
+    stoplight.counter = 2;
     lightUpStoplight(stoplight);
+    stoplight.lastUpdateTime = currentTime;
   }
 }
 
@@ -152,6 +157,8 @@ void setup() {
 
   setupStoplight(stoplight1);
   startingStoplightSetup(stoplight1);
+  setupStoplight(stoplight2);
+  startingStoplightSetup(stoplight2);
   Serial.println("Connecting to ws");
   webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
   webSocket.onEvent(webSocketEvent);
@@ -196,7 +203,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
       } else {
         currentState = INACTIVE;
       } 
-      webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\": \"" + String(STOPLIGHT_GROUP_ID) + "}");
+      // webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\": \"" + String(STOPLIGHT_GROUP_ID) + "}");
       break;
     }
     default: {
