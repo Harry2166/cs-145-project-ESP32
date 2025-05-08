@@ -70,6 +70,7 @@ const unsigned long onGreenLightInterval = 2000;
 int hasTransitionedToPreActive = 0; // preactive state is the state as it is going to the active state
 int hasTransitionedToActive = 0;
 int hasTransitionedToInactive = 0;
+unsigned long toInactiveTransitionTime = 0;
 JsonDocument doc;
 std::map<int, Stoplight*> stoplightsMap = {
   {stoplight1.id, &stoplight1}, 
@@ -182,15 +183,18 @@ void allActiveStoplights(unsigned long currentTime) {
   }
 }
 
-void resetAllStoplightLastUpdateTime() {
+void resetAllStoplightLastUpdateTime(unsigned long currentTime) {
   for (auto& pair : stoplightsMap) {
-    pair.second->lastUpdateTime = millis();
+    pair.second->lastUpdateTime = currentTime;
   }
 }
 
 void allStoplightsColorsToDefault() {
   for (auto& pair : stoplightsMap) {
     pair.second->red_led_status = pair.second->default_red_led_status; 
+    pair.second->yellow_led_status = pair.second->default_yellow_led_status; 
+    pair.second->green_led_status = pair.second->default_green_led_status; 
+    lightUpStoplight(stoplight);
   }
 }
 
@@ -204,20 +208,22 @@ void setup() {
   setupStoplight(stoplight2);
   /*startingStoplightSetup(stoplight2);*/
   Serial.println("Connecting to ws");
-  /*webSocket.begin(WS_HOST, WS_PORT, WS_URL); */
-  /*webSocket.onEvent(webSocketEvent);*/
-  /*webSocket.setReconnectInterval(5000);*/
+  webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
+  webSocket.onEvent(webSocketEvent);
+  webSocket.setReconnectInterval(5000);
   lightUpStoplight(stoplight1);
   lightUpStoplight(stoplight2);
 }
 
 void loop() {
-  /*webSocket.loop();*/
+  webSocket.loop();
   unsigned long currentTime = millis();
-  if (currentState == INACTIVE && hasTransitionedToInactive) {
-    resetAllStoplightLastUpdateTime();
+  if (currentState == INACTIVE && currentTime - toInactiveTransitionTime >= onYellowLightInterval && hasTransitionedToInactive) {
+    resetAllStoplightLastUpdateTime(currentTime);
     allStoplightsColorsToDefault(); 
     putAllStoplightCountersToStart();
+    hasTransitionedToInactive = 0;
+    //toInactiveTransitionTime = 0;
   } else if (currentState == INACTIVE) {
     allInactiveStoplights(currentTime);
   } else {
@@ -255,6 +261,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
           hasTransitionedToPreActive = 0;
           hasTransitionedToActive = 0;
           hasTransitionedToInactive = 1;
+          toInactiveTransitionTime = millis();
           allStoplightsSameColor(HIGH, LOW, HIGH); // all become yellow
         }
         currentState = INACTIVE;
