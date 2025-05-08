@@ -29,15 +29,15 @@ struct Stoplight {
   int startingCounter; // this counter is to setup the default setup again
   unsigned long lastUpdateTime;
 
-  // constructor for building a stoplight at default -> meaning that you set values for id, red, yellow, etc. but the statuses (stati?) are HIGH 
-  Stoplight(int _id, byte _red, byte _yellow, byte _green, int _counter = 0, int _startingCounter = 0, unsigned long _lastUpdateTime = 0)
+  // constructor for building a stoplight at default -> meaning that you set values for id, red, yellow, etc. 
+  Stoplight(int _id, byte _red, byte _yellow, byte _green, int _red_led_status, int _yellow_led_status, int _green_led_status, int _counter = 0, int _startingCounter = 0, unsigned long _lastUpdateTime = 0)
     : id(_id),
       red_led(_red),
       yellow_led(_yellow),
       green_led(_green),
-      red_led_status(HIGH),
-      yellow_led_status(HIGH),
-      green_led_status(HIGH),
+      red_led_status(_red_led_status),
+      yellow_led_status(_yellow_led_status),
+      green_led_status(_green_led_status),
       counter(_counter),
       startingCounter(_startingCounter),
       lastUpdateTime(_lastUpdateTime)
@@ -52,8 +52,8 @@ enum State {
 
 // Global Variables
 HTTPClient client;
-struct Stoplight stoplight1 = {0, 32, 25, 26, 1, 0}; // im letting it start from the one that is -1 from them (supposed to be 0,0)
-struct Stoplight stoplight2 = {1, 27, 14, 12, 0, 2}; // (supposed to be 2,2)
+struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, HIGH, HIGH, 0, 0}; 
+struct Stoplight stoplight2 = {1, 27, 14, 12, HIGH, HIGH, LOW, 2, 2};
 enum State currentState = INACTIVE;
 WebSocketsClient webSocket;
 int stoplightID;
@@ -96,17 +96,12 @@ void setupStoplight(Stoplight &stoplight) {
 }
 
 void startingStoplightSetup(Stoplight &stoplight) {
-  overwriteStoplight(stoplight, LOW, HIGH, HIGH);
-  lightUpStoplight(stoplight);
-  delay(500);
-  overwriteStoplight(stoplight, HIGH, LOW, HIGH);
-  lightUpStoplight(stoplight);
-  delay(500);
-  overwriteStoplight(stoplight, HIGH, HIGH, LOW);
+  overwriteStoplight(stoplight, LOW, LOW, LOW);
   lightUpStoplight(stoplight);
   delay(500);
   overwriteStoplight(stoplight, HIGH, HIGH, HIGH);
   lightUpStoplight(stoplight);
+  delay(500);
 }
 
 void putAllStoplightCountersToStart() {
@@ -192,17 +187,19 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   setupStoplight(stoplight1);
-  startingStoplightSetup(stoplight1);
+  /*startingStoplightSetup(stoplight1);*/
   setupStoplight(stoplight2);
-  startingStoplightSetup(stoplight2);
+  /*startingStoplightSetup(stoplight2);*/
   Serial.println("Connecting to ws");
-  webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
-  webSocket.onEvent(webSocketEvent);
-  webSocket.setReconnectInterval(5000);
+  /*webSocket.begin(WS_HOST, WS_PORT, WS_URL); */
+  /*webSocket.onEvent(webSocketEvent);*/
+  /*webSocket.setReconnectInterval(5000);*/
+  lightUpStoplight(stoplight1);
+  lightUpStoplight(stoplight2);
 }
 
 void loop() {
-  webSocket.loop();
+  /*webSocket.loop();*/
   unsigned long currentTime = millis();
   if (currentState == INACTIVE) {
     allInactiveStoplights(currentTime);
@@ -244,7 +241,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
         }
         currentState = INACTIVE;
       } 
-      webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\": " + String(STOPLIGHT_GROUP_ID) + "}");
+      // webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\": " + String(STOPLIGHT_GROUP_ID) + "}");
       break;
     }
     default: {
