@@ -25,6 +25,9 @@ struct Stoplight {
   int red_led_status;
   int yellow_led_status;
   int green_led_status;
+  int default_red_led_status;
+  int default_yellow_led_status;
+  int default_green_led_status;
   int counter; // this counter is for the back and forth between red, yellow, and green
   int startingCounter; // this counter is to setup the default setup again
   unsigned long lastUpdateTime;
@@ -38,6 +41,9 @@ struct Stoplight {
       red_led_status(_red_led_status),
       yellow_led_status(_yellow_led_status),
       green_led_status(_green_led_status),
+      default_red_led_status(_red_led_status),
+      default_yellow_led_status(_yellow_led_status),
+      default_green_led_status(_green_led_status),
       counter(_counter),
       startingCounter(_startingCounter),
       lastUpdateTime(_lastUpdateTime)
@@ -63,6 +69,7 @@ const unsigned long onYellowLightInterval = 1000;
 const unsigned long onGreenLightInterval = 2000; 
 int hasTransitionedToPreActive = 0; // preactive state is the state as it is going to the active state
 int hasTransitionedToActive = 0;
+int hasTransitionedToInactive = 0;
 JsonDocument doc;
 std::map<int, Stoplight*> stoplightsMap = {
   {stoplight1.id, &stoplight1}, 
@@ -181,6 +188,12 @@ void resetAllStoplightLastUpdateTime() {
   }
 }
 
+void allStoplightsColorsToDefault() {
+  for (auto& pair : stoplightsMap) {
+    pair.second->red_led_status = pair.second->default_red_led_status; 
+  }
+}
+
 void setup() {
   Serial.begin(921600);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -201,7 +214,11 @@ void setup() {
 void loop() {
   /*webSocket.loop();*/
   unsigned long currentTime = millis();
-  if (currentState == INACTIVE) {
+  if (currentState == INACTIVE && hasTransitionedToInactive) {
+    resetAllStoplightLastUpdateTime();
+    allStoplightsColorsToDefault(); 
+    putAllStoplightCountersToStart();
+  } else if (currentState == INACTIVE) {
     allInactiveStoplights(currentTime);
   } else {
     allActiveStoplights(currentTime);
@@ -232,12 +249,13 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
 
       if (status == 1 && groupID == STOPLIGHT_GROUP_ID) {
         currentState = ACTIVE;
-        putAllStoplightCountersToStart();
+        hasTransitionedToInactive = 0;
       } else { // status == 0
         if (groupID == STOPLIGHT_GROUP_ID) {
           hasTransitionedToPreActive = 0;
           hasTransitionedToActive = 0;
-          resetAllStoplightLastUpdateTime();
+          hasTransitionedToInactive = 1;
+          allStoplightsSameColor(HIGH, LOW, HIGH); // all become yellow
         }
         currentState = INACTIVE;
       } 
