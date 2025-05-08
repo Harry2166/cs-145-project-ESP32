@@ -55,6 +55,8 @@ unsigned long lastUpdateTime = 0;
 const unsigned long onRedLightInterval = 3500; // make it so that onRedLightInterval > onYellowLightInterval + onGreenLightInterval 
 const unsigned long onYellowLightInterval = 1000; 
 const unsigned long onGreenLightInterval = 2000; 
+int hasTransitionedToPreActive = 0; // preactive state is the state as it is going to the active state
+int hasTransitionedToActive = 0;
 JsonDocument doc;
 std::map<int, Stoplight*> stoplightsMap = {
   {stoplight1.id, &stoplight1}, 
@@ -143,10 +145,38 @@ void allInactiveStoplights(unsigned long currentTime) {
   }
 }
 
+void allStoplightsSameColor(int red_status, int yellow_status, int green_status) {
+  for (auto& pair : stoplightsMap) {
+    overwriteStoplight(*pair.second, red_status, yellow_status, green_status);
+    lightUpStoplight(*pair.second);
+  }
+}
 
-void activeStoplight(unsigned long currentTime) {
-  if (currentTime - lastUpdateTime >= onYellowLightInterval) { // switching to a non-yellow color
-    lastUpdateTime = currentTime;
+void activeStoplight(Stoplight &stoplight, unsigned long currentTime) {
+  if (!hasTransitionedToPreActive) { // switching to a non-yellow color
+    stoplight.lastUpdateTime = currentTime;
+    hasTransitionedToPreActive = 1;
+    allStoplightsSameColor(HIGH, LOW, HIGH);
+  } else if (currentTime - stoplight.lastUpdateTime >= onYellowLightInterval && hasTransitionedToPreActive && !hasTransitionedToActive) {
+    if (stoplightID == stoplight.id) {
+      overwriteStoplight(stoplight, HIGH, HIGH, LOW);
+    } else {
+      overwriteStoplight(stoplight, LOW, HIGH, HIGH);
+    }
+    lightUpStoplight(stoplight);
+    hasTransitionedToActive = 1;
+  }
+}
+
+void allActiveStoplights(unsigned long currentTime) {
+  for (auto& pair : stoplightsMap) {
+    activeStoplight(*pair.second, currentTime);
+  }
+}
+
+void resetAllStoplightLastUpdateTime() {
+  for (auto& pair : stoplightsMap) {
+    pair.second->lastUpdateTime = millis();
   }
 }
 
@@ -171,7 +201,7 @@ void loop() {
   if (currentState == INACTIVE) {
     allInactiveStoplights(currentTime);
   } else {
-    activeStoplight(currentTime);
+    allActiveStoplights(currentTime);
   }
 }
 
@@ -200,10 +230,15 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
       if (status == 1 && groupID == STOPLIGHT_GROUP_ID) {
         currentState = ACTIVE;
         putAllStoplightCountersToStart();
-      } else {
+      } else { // status == 0
+        if (groupID == STOPLIGHT_GROUP_ID) {
+          hasTransitionedToPreActive = 0;
+          hasTransitionedToActive = 0;
+          resetAllStoplightLastUpdateTime();
+        }
         currentState = INACTIVE;
       } 
-      // webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\": \"" + String(STOPLIGHT_GROUP_ID) + "}");
+      webSocket.sendTXT("{\"message\": \"ACK\", \"groupID\": " + String(STOPLIGHT_GROUP_ID) + "}");
       break;
     }
     default: {
