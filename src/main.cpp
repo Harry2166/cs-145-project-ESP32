@@ -7,8 +7,14 @@
 #include <map>
 
 /*
-stoplight 1: red green yellow
-stoplight2: green yellow red
+stoplight with id 0 will have the cycles as: red -> green -> yellow
+  + red (32) 
+  + yellow (25)
+  + green (26)
+stoplight with id 1 will have the cycles as: green -> yellow -> red
+  + red (27) 
+  + yellow (14)
+  + green (12)
 */
 
 struct Stoplight {
