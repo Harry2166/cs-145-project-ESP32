@@ -59,19 +59,27 @@ enum State {
   INACTIVE
 };
 
+enum TransitionState {
+  NONE, // whether it is comfortably inactvive / active
+  TO_PREACTIVE, // preactive state is the state as it is going to the active state (ie it is ACTIVE but still trying to become red/green)
+  TO_ACTIVE, // statement that keeps track of whether it is comfortably in the active state
+  TO_INACTIVE // to be used during the transition from active -> inactive
+};
+
 // Global Variables
 HTTPClient client;
 WebSocketsClient webSocket;
 struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, HIGH, HIGH, 0, 0}; 
 struct Stoplight stoplight2 = {1, 27, 14, 12, HIGH, HIGH, LOW, 2, 2};
 enum State currentState = INACTIVE;
+enum TransitionState currentTransitionState = NONE;
 int activeStoplightID; // global variable to keep track of which stoplight is active
-const unsigned long onRedLightInterval = 3500; // make it so that onRedLightInterval > onYellowLightInterval + onGreenLightInterval 
-const unsigned long onYellowLightInterval = 1000; 
-const unsigned long onGreenLightInterval = 2000; 
-int hasTransitionedToPreActive = 0; // preactive state is the state as it is going to the active state (ie it is "technically" ACTIVE but still trying to become red/green)
-int hasTransitionedToActive = 0; // statement that keeps track of whether it is comfortably in the active state
-int hasTransitionedToInactive = 0; // to be used during the transition from active -> inactive
+
+// make it so that onRedLightInterval > onYellowLightInterval + onGreenLightInterval
+const unsigned long onRedLightInterval = 3500; // length of time (in ms) that the red light is on 
+const unsigned long onYellowLightInterval = 1000; // length of time (in ms) that the yellow light is on
+const unsigned long onGreenLightInterval = 2000; // length of time (in ms) that the green light is on
+                                                 //
 unsigned long toInactiveTransitionTime = 0; // this is the time wherein it has just became inactive when it was originally active
 JsonDocument doc; // json document to store the websocket payload
 std::map<int, Stoplight*> stoplightsMap = {
@@ -140,6 +148,17 @@ void turnIntoJsonDocument(String payload, JsonDocument &doc){
   deserializeJson(doc, json);
 }
 
+/**
+ * The function that transitions to the normal inactive state; Assumes that currentTransitionState == TO_INACTIVE
+ * @params currentTime: The time at which the stoplight changed
+ */
+void toInactiveStoplights(unsigned long currentTime){
+  resetAllStoplightLastUpdateTime(currentTime);
+  allStoplightsColorsToDefault(); 
+  putAllStoplightCountersToStart();
+  currentTransitionState = NONE;
+}
+
 /** 
  * The function in charge of cycling the stoplights in their normal order without the emergency vehicle. The order of the colors go red -> green -> yellow (in terms of indices: 0->2->1) 
  * @param stoplight: The stoplight to be cycled
@@ -170,7 +189,7 @@ void turnIntoJsonDocument(String payload, JsonDocument &doc){
 }
 
 /**
- * Calls the `inactiveStoplight` function to all the stoplights
+ * Calls the inactiveStoplight function to all the stoplights; This function assumes that currentTransitionState == NONE and currentState == INACTIVE
  * @param currentTime: The time at which the stoplight changed
  */
 void allInactiveStoplights(unsigned long currentTime) {
@@ -179,52 +198,45 @@ void allInactiveStoplights(unsigned long currentTime) {
   }
 }
 
-/*
- * Sets the stoplights to the same colors
- * @param[in] red_status, yellow_status, green_status: HIGH / LOW input if you want the light to be on or off
- */
-void allStoplightsSameColor(int red_status, int yellow_status, int green_status) {
-  for (auto& pair : stoplightsMap) {
-    overwriteStoplight(*pair.second, red_status, yellow_status, green_status);
-    lightUpStoplight(*pair.second);
-  }
-}
-
 /** 
- * The function in charge of handling the stoplights if the emergency vehicle is nearby. 
+ * The function in charge of handling the stoplights if the emergency vehicle just became nearby (if it has just switched to active, change stoplight to yellow); This function assumes that currentTransitionState == TO_PREACTIVE and currentState == ACTIVE 
  * @param stoplight: The stoplight to be cycled
  * @param currentTime: The time at which the stoplight changed
  */
-void activeStoplight(Stoplight &stoplight, unsigned long currentTime) {
+void toPreactiveStoplight(Stoplight &stoplight, unsigned long currentTime) {
+  Serial.println("Preactive State: " + String(stoplight.id));
+  stoplight.lastUpdateTime = currentTime;
+  overwriteStoplight(stoplight, HIGH, LOW, HIGH);
+  lightUpStoplight(stoplight);
+}
 
-  // if it has just switched to active, change all stoplights to yellow
-  if (!hasTransitionedToPreActive) { 
-    Serial.println("Preactive State: " + String(stoplight.id));
-    stoplight.lastUpdateTime = currentTime;
-    hasTransitionedToPreActive = 1;
-    allStoplightsSameColor(HIGH, LOW, HIGH);
-
-    // if it is already active and the yellow time is up, change the stoplight to their respective colors
-  } else if (currentTime - stoplight.lastUpdateTime >= onYellowLightInterval && hasTransitionedToPreActive && !hasTransitionedToActive) {
-    Serial.println("Active State: " + String(stoplight.id));
-    if (activeStoplightID == stoplight.id) {
-      overwriteStoplight(stoplight, HIGH, HIGH, LOW);
-    } else {
-      overwriteStoplight(stoplight, LOW, HIGH, HIGH);
-    }
-    lightUpStoplight(stoplight);
-    hasTransitionedToActive = 1;
+/** 
+ * The function in charge of handling the stoplights if the emergency vehicle is nearby (if it is already active and the yellow time is up, change the stoplight to their respective colors); This function assumes that currentTransitionState == TO_ACTIVE and currentState == ACTIVE 
+ * @param stoplight: The stoplight to be cycled
+ * @param currentTime: The time at which the stoplight changed
+ */
+void toActiveStoplight(Stoplight &stoplight, unsigned long currentTime) {
+  Serial.println("Active State: " + String(stoplight.id));
+  if (activeStoplightID == stoplight.id) {
+    overwriteStoplight(stoplight, HIGH, HIGH, LOW);
+  } else {
+    overwriteStoplight(stoplight, LOW, HIGH, HIGH);
   }
+  lightUpStoplight(stoplight);
 }
 
 /**
- * Calls the `activeStoplight` function to all the stoplights
+ * Calls the `toPreactiveStoplight` or `toActiveStoplight` function to all the stoplights; This function assumes that currentTransitionState == TO_ACTIVE / TO_PREACTIVE and currentState == ACTIVE
  * @param currentTime: The time at which the stoplight changed
  */
 void allActiveStoplights(unsigned long currentTime) {
   for (auto& pair : stoplightsMap) {
-    activeStoplight(*pair.second, currentTime);
+    if (currentTransitionState == TO_PREACTIVE) toPreactiveStoplight(*pair.second, currentTime);
+    else if (currentTransitionState == TO_ACTIVE) toActiveStoplight(*pair.second, currentTime);
   }
+
+  if (currentTransitionState == TO_PREACTIVE) currentTransitionState = TO_ACTIVE; 
+  else if (currentTransitionState == TO_ACTIVE) currentTransitionState = NONE;
 }
 
 /**
@@ -275,16 +287,14 @@ void setup() {
 */
 void loop() {
   webSocket.loop();
-  unsigned long currentTime = millis();
+  unsigned long currentTime = millis(); // calling this here rn and not within each function so that each time would be synced
+
   // if it is inactive and it has already transitioned to the inactive state and it is time to change
-  if (currentState == INACTIVE && currentTime - toInactiveTransitionTime >= onYellowLightInterval && hasTransitionedToInactive) {
-    resetAllStoplightLastUpdateTime(currentTime);
-    allStoplightsColorsToDefault(); 
-    putAllStoplightCountersToStart();
-    hasTransitionedToInactive = 0;
+  if (currentState == INACTIVE && currentTime - toInactiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_INACTIVE) {
+    toInactiveStoplights(currentTime);
   } else if (currentState == INACTIVE) {
     allInactiveStoplights(currentTime);
-  } else {
+  } else if (currentState == ACTIVE && (currentTransitionState == TO_PREACTIVE || currentTransitionState == TO_ACTIVE)) { 
     allActiveStoplights(currentTime);
   }
 }
@@ -317,17 +327,16 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
       // if the emergency vehicle is nearby (make active) 
       if (status == 1 && groupID == STOPLIGHT_GROUP_ID) {
         currentState = ACTIVE;
+        currentTransitionState = TO_PREACTIVE;
 
       // if the emergency vehicle is not nearby (make inactive)
       } else { 
 
-        // this is when it returns status: 0, switch all the transition states to active back to 0 and the inactive transition state to 1; make all stoplights yellow
+        // this is the instance that the emergency vehicle is exiting the radius, switch transition state to TO_INACTIVE; make all stoplights yellow
         if (groupID == STOPLIGHT_GROUP_ID) {
-          hasTransitionedToPreActive = 0;
-          hasTransitionedToActive = 0;
-          hasTransitionedToInactive = 1;
+          currentTransitionState = TO_INACTIVE;
           toInactiveTransitionTime = millis();
-          allStoplightsSameColor(HIGH, LOW, HIGH); 
+          allStoplightsSameColor(HIGH, LOW, HIGH); // make all stoplights yellow
         }
         currentState = INACTIVE;
       } 
