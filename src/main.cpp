@@ -199,14 +199,14 @@ void activeStoplight(Stoplight &stoplight, unsigned long currentTime) {
 
   // if it has just switched to active, change all stoplights to yellow
   if (!hasTransitionedToPreActive) { 
-    Serial.println("Preactive State");
+    Serial.println("Preactive State: " + String(stoplight.id));
     stoplight.lastUpdateTime = currentTime;
     hasTransitionedToPreActive = 1;
     allStoplightsSameColor(HIGH, LOW, HIGH);
 
     // if it is already active and the yellow time is up, change the stoplight to their respective colors
   } else if (currentTime - stoplight.lastUpdateTime >= onYellowLightInterval && hasTransitionedToPreActive && !hasTransitionedToActive) {
-    Serial.println("Active State");
+    Serial.println("Active State: " + String(stoplight.id));
     if (activeStoplightID == stoplight.id) {
       overwriteStoplight(stoplight, HIGH, HIGH, LOW);
     } else {
@@ -317,7 +317,6 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
       // if the emergency vehicle is nearby (make active) 
       if (status == 1 && groupID == STOPLIGHT_GROUP_ID) {
         currentState = ACTIVE;
-        hasTransitionedToInactive = 0;
 
       // if the emergency vehicle is not nearby (make inactive)
       } else { 
