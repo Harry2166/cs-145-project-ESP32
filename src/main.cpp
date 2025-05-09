@@ -245,7 +245,7 @@ void allStoplightsColorsToDefault() {
     pair.second->red_led_status = pair.second->default_red_led_status; 
     pair.second->yellow_led_status = pair.second->default_yellow_led_status; 
     pair.second->green_led_status = pair.second->default_green_led_status; 
-    lightUpStoplight(stoplight);
+    lightUpStoplight(*pair.second);
   }
 }
 
