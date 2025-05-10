@@ -81,6 +81,7 @@ const unsigned long onYellowLightInterval = 1000; // length of time (in ms) that
 const unsigned long onGreenLightInterval = 2000; // length of time (in ms) that the green light is on
                                                  //
 unsigned long toInactiveTransitionTime = 0; // this is the time wherein it has just became inactive when it was originally active
+unsigned long toActiveTransitionTime = 0; // tracks the time when it became yellow due to being in preactive state
 JsonDocument doc; // json document to store the websocket payload
 std::map<int, Stoplight*> stoplightsMap = {
   {stoplight1.id, &stoplight1}, 
@@ -149,6 +150,39 @@ void turnIntoJsonDocument(String payload, JsonDocument &doc){
 }
 
 /**
+ * Resets all the stoplights' last update time to the current time; This is used when the active state is done
+ * @param currentTime: The time at which the stoplight changed
+ */
+void resetAllStoplightLastUpdateTime(unsigned long currentTime) {
+  for (auto& pair : stoplightsMap) {
+    pair.second->lastUpdateTime = currentTime;
+  }
+}
+
+/**
+ * Puts the colors of the stoplights to their default color scheme
+ */
+void allStoplightsColorsToDefault() {
+  for (auto& pair : stoplightsMap) {
+    pair.second->red_led_status = pair.second->default_red_led_status; 
+    pair.second->yellow_led_status = pair.second->default_yellow_led_status; 
+    pair.second->green_led_status = pair.second->default_green_led_status; 
+    lightUpStoplight(*pair.second);
+  }
+}
+/*
+ *
+ * Sets the stoplights to the same colors
+ * @param[in] red_status, yellow_status, green_status: HIGH / LOW input if you want the light to be on or off
+ */
+void allStoplightsSameColor(int red_status, int yellow_status, int green_status) {
+  for (auto& pair : stoplightsMap) {
+    overwriteStoplight(*pair.second, red_status, yellow_status, green_status);
+    lightUpStoplight(*pair.second);
+  }
+}
+
+/**
  * The function that transitions to the normal inactive state; Assumes that currentTransitionState == TO_INACTIVE
  * @params currentTime: The time at which the stoplight changed
  */
@@ -203,9 +237,8 @@ void allInactiveStoplights(unsigned long currentTime) {
  * @param stoplight: The stoplight to be cycled
  * @param currentTime: The time at which the stoplight changed
  */
-void toPreactiveStoplight(Stoplight &stoplight, unsigned long currentTime) {
+void toPreactiveStoplight(Stoplight &stoplight) {
   Serial.println("Preactive State: " + String(stoplight.id));
-  stoplight.lastUpdateTime = currentTime;
   overwriteStoplight(stoplight, HIGH, LOW, HIGH);
   lightUpStoplight(stoplight);
 }
@@ -215,12 +248,12 @@ void toPreactiveStoplight(Stoplight &stoplight, unsigned long currentTime) {
  * @param stoplight: The stoplight to be cycled
  * @param currentTime: The time at which the stoplight changed
  */
-void toActiveStoplight(Stoplight &stoplight, unsigned long currentTime) {
+void toActiveStoplight(Stoplight &stoplight) {
   Serial.println("Active State: " + String(stoplight.id));
   if (activeStoplightID == stoplight.id) {
-    overwriteStoplight(stoplight, HIGH, HIGH, LOW);
+    overwriteStoplight(stoplight, HIGH, HIGH, LOW); // turn green
   } else {
-    overwriteStoplight(stoplight, LOW, HIGH, HIGH);
+    overwriteStoplight(stoplight, LOW, HIGH, HIGH); // turn red
   }
   lightUpStoplight(stoplight);
 }
@@ -231,34 +264,16 @@ void toActiveStoplight(Stoplight &stoplight, unsigned long currentTime) {
  */
 void allActiveStoplights(unsigned long currentTime) {
   for (auto& pair : stoplightsMap) {
-    if (currentTransitionState == TO_PREACTIVE) toPreactiveStoplight(*pair.second, currentTime);
-    else if (currentTransitionState == TO_ACTIVE) toActiveStoplight(*pair.second, currentTime);
+    if (currentTransitionState == TO_PREACTIVE) {
+      toPreactiveStoplight(*pair.second);
+    } else if (currentTime - toActiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_ACTIVE) toActiveStoplight(*pair.second);
   }
 
-  if (currentTransitionState == TO_PREACTIVE) currentTransitionState = TO_ACTIVE; 
-  else if (currentTransitionState == TO_ACTIVE) currentTransitionState = NONE;
-}
-
-/**
- * Resets all the stoplights' last update time to the current time; This is used when the active state is done
- * @param currentTime: The time at which the stoplight changed
- */
-void resetAllStoplightLastUpdateTime(unsigned long currentTime) {
-  for (auto& pair : stoplightsMap) {
-    pair.second->lastUpdateTime = currentTime;
+  if (currentTransitionState == TO_PREACTIVE) {
+    currentTransitionState = TO_ACTIVE;
+    toActiveTransitionTime = currentTime;
   }
-}
-
-/**
- * Puts the colors of the stoplights to their default color scheme
- */
-void allStoplightsColorsToDefault() {
-  for (auto& pair : stoplightsMap) {
-    pair.second->red_led_status = pair.second->default_red_led_status; 
-    pair.second->yellow_led_status = pair.second->default_yellow_led_status; 
-    pair.second->green_led_status = pair.second->default_green_led_status; 
-    lightUpStoplight(*pair.second);
-  }
+  else if (currentTime - toActiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_ACTIVE) currentTransitionState = NONE;
 }
 
 /**
