@@ -263,17 +263,19 @@ void toActiveStoplight(Stoplight &stoplight) {
  * @param currentTime: The time at which the stoplight changed
  */
 void allActiveStoplights(unsigned long currentTime) {
+
+  int isComfortablyActive = currentTime - toActiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_ACTIVE;
+
   for (auto& pair : stoplightsMap) {
-    if (currentTransitionState == TO_PREACTIVE) {
-      toPreactiveStoplight(*pair.second);
-    } else if (currentTime - toActiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_ACTIVE) toActiveStoplight(*pair.second);
+    if (currentTransitionState == TO_PREACTIVE) toPreactiveStoplight(*pair.second);
+    else if (isComfortablyActive) toActiveStoplight(*pair.second);
   }
 
   if (currentTransitionState == TO_PREACTIVE) {
     currentTransitionState = TO_ACTIVE;
     toActiveTransitionTime = currentTime;
   }
-  else if (currentTime - toActiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_ACTIVE) currentTransitionState = NONE;
+  else if (isComfortablyActive) currentTransitionState = NONE;
 }
 
 /**
@@ -307,7 +309,7 @@ void loop() {
   // if it is inactive and it has already transitioned to the inactive state and it is time to change
   if (currentState == INACTIVE && currentTime - toInactiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_INACTIVE) {
     toInactiveStoplights(currentTime);
-  } else if (currentState == INACTIVE) {
+  } else if (currentState == INACTIVE && currentTransitionState == NONE) {
     allInactiveStoplights(currentTime);
   } else if (currentState == ACTIVE && (currentTransitionState == TO_PREACTIVE || currentTransitionState == TO_ACTIVE)) { 
     allActiveStoplights(currentTime);
