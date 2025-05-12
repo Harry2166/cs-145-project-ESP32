@@ -7,11 +7,11 @@
 #include <map>
 
 /*
-stoplight with id 0 will have the cycles as: red -> green -> yellow
+stoplight with id x will have the cycles as: red -> green -> yellow
   + red (32) 
   + yellow (25)
   + green (26)
-stoplight with id 1 will have the cycles as: green -> yellow -> red
+stoplight with id x+1 will have the cycles as: green -> yellow -> red
   + red (27) 
   + yellow (14)
   + green (12)
@@ -69,8 +69,8 @@ enum TransitionState {
 // Global Variables
 HTTPClient client;
 WebSocketsClient webSocket;
-struct Stoplight stoplight1 = {0, 32, 25, 26, LOW, HIGH, HIGH, 0, 0}; 
-struct Stoplight stoplight2 = {1, 27, 14, 12, HIGH, HIGH, LOW, 2, 2};
+struct Stoplight stoplight1 = {1, 32, 25, 26, LOW, HIGH, HIGH, 0, 0}; 
+struct Stoplight stoplight2 = {2, 27, 14, 12, HIGH, HIGH, LOW, 2, 2};
 enum State currentState = INACTIVE;
 enum TransitionState currentTransitionState = NONE;
 int activeStoplightID; // global variable to keep track of which stoplight is active
@@ -79,7 +79,7 @@ int activeStoplightID; // global variable to keep track of which stoplight is ac
 const unsigned long onRedLightInterval = 3500; // length of time (in ms) that the red light is on 
 const unsigned long onYellowLightInterval = 1000; // length of time (in ms) that the yellow light is on
 const unsigned long onGreenLightInterval = 2000; // length of time (in ms) that the green light is on
-                                                 //
+const unsigned long transitionLightInterval = 500; // length of time (in ms) that the transition is occuring
 unsigned long toInactiveTransitionTime = 0; // this is the time wherein it has just became inactive when it was originally active
 unsigned long toActiveTransitionTime = 0; // tracks the time when it became yellow due to being in preactive state
 JsonDocument doc; // json document to store the websocket payload
@@ -264,7 +264,7 @@ void toActiveStoplight(Stoplight &stoplight) {
  */
 void allActiveStoplights(unsigned long currentTime) {
 
-  int isComfortablyActive = currentTime - toActiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_ACTIVE;
+  int isComfortablyActive = currentTime - toActiveTransitionTime >= transitionLightInterval && currentTransitionState == TO_ACTIVE;
 
   for (auto& pair : stoplightsMap) {
     if (currentTransitionState == TO_PREACTIVE) toPreactiveStoplight(*pair.second);
@@ -307,7 +307,7 @@ void loop() {
   unsigned long currentTime = millis(); // calling this here rn and not within each function so that each time would be synced
 
   // if it is inactive and it has already transitioned to the inactive state and it is time to change
-  if (currentState == INACTIVE && currentTime - toInactiveTransitionTime >= onYellowLightInterval && currentTransitionState == TO_INACTIVE) {
+  if (currentState == INACTIVE && currentTime - toInactiveTransitionTime >= transitionLightInterval && currentTransitionState == TO_INACTIVE) {
     toInactiveStoplights(currentTime);
   } else if (currentState == INACTIVE && currentTransitionState == NONE) {
     allInactiveStoplights(currentTime);
@@ -337,7 +337,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
 
       // parsing JSON here
       turnIntoJsonDocument((char*)payload, doc);
-      int status = doc["status"];
+      int status = doc["activate"];
       int groupID = doc["groupID"];
       activeStoplightID = doc["stoplightID"];
 
