@@ -329,6 +329,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
     }
     case WStype_DISCONNECTED: {
       Serial.println("WebSocket client disconnected");
+      digitalWrite(LED_BUILTIN, LOW); 
       break;
     }
     case WStype_TEXT: {
