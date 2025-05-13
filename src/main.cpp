@@ -294,6 +294,7 @@ void setup() {
   webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
   webSocket.onEvent(webSocketEvent);
   webSocket.setReconnectInterval(5000);
+  webSocket.enableHeartbeat(30000, 10000, 3); // add a ping system to the websocket
 
   lightUpStoplight(stoplight1);
   lightUpStoplight(stoplight2);
