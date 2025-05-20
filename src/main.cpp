@@ -74,6 +74,7 @@ struct Stoplight stoplight2 = {2, 27, 14, 12, HIGH, HIGH, LOW, 2, 2};
 enum State currentState = INACTIVE;
 enum TransitionState currentTransitionState = NONE;
 int activeStoplightID; // global variable to keep track of which stoplight is active
+const byte led = 13; 
 
 // make it so that onRedLightInterval > onYellowLightInterval + onGreenLightInterval
 const unsigned long onRedLightInterval = 3500; // length of time (in ms) that the red light is on 
@@ -283,7 +284,7 @@ void allActiveStoplights(unsigned long currentTime) {
 */
 void setup() {
   Serial.begin(921600);
-  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(led, OUTPUT);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   setupStoplight(stoplight1);
@@ -304,7 +305,12 @@ void setup() {
 * will continously connect to the websocket and light up the stoplights
 */
 void loop() {
-  webSocket.loop();
+   /*if (WiFi.status() == WL_CONNECTED) {*/
+   /*   Serial.println("Still connected to WiFi.");*/
+   /* } else {*/
+   /*     Serial.println("WiFi connection lost!");*/
+   /* } */
+   webSocket.loop();
   unsigned long currentTime = millis(); // calling this here rn and not within each function so that each time would be synced
 
   // if it is inactive and it has already transitioned to the inactive state and it is time to change
@@ -324,13 +330,13 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
   switch (type) {
     case WStype_CONNECTED: {
       Serial.println("connected to ws://" + String(WS_HOST) + String(WS_URL));
-      digitalWrite(LED_BUILTIN, HIGH); 
+      digitalWrite(led, HIGH); 
       webSocket.sendTXT("{\"message\": \"ACK\"}");
       break;
     }
     case WStype_DISCONNECTED: {
       Serial.println("WebSocket client disconnected");
-      digitalWrite(LED_BUILTIN, LOW); 
+      digitalWrite(led, LOW); 
       break;
     }
     case WStype_TEXT: {
