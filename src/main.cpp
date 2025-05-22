@@ -14,7 +14,7 @@ stoplight with id x will have the cycles as: red -> green -> yellow
 stoplight with id x+1 will have the cycles as: green -> yellow -> red
   + red (27) 
   + yellow (14)
-  + green (12)
+  + green (13)
 */
 
 struct Stoplight {
@@ -70,11 +70,11 @@ enum TransitionState {
 HTTPClient client;
 WebSocketsClient webSocket;
 struct Stoplight stoplight1 = {1, 32, 25, 26, LOW, HIGH, HIGH, 0, 0}; 
-struct Stoplight stoplight2 = {2, 27, 14, 12, HIGH, HIGH, LOW, 2, 2};
+struct Stoplight stoplight2 = {2, 27, 14, 13, HIGH, HIGH, LOW, 2, 2};
 enum State currentState = INACTIVE;
 enum TransitionState currentTransitionState = NONE;
 int activeStoplightID; // global variable to keep track of which stoplight is active
-const byte led = 13; 
+const byte led = 12; 
 
 // make it so that onRedLightInterval > onYellowLightInterval + onGreenLightInterval
 const unsigned long onRedLightInterval = 3500; // length of time (in ms) that the red light is on 
@@ -283,7 +283,7 @@ void allActiveStoplights(unsigned long currentTime) {
 * Connects the given wifi and websocket; Also setups and lights up the stoplights
 */
 void setup() {
-  Serial.begin(921600);
+  Serial.begin(460800);
   pinMode(led, OUTPUT);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
@@ -316,10 +316,13 @@ void loop() {
   // if it is inactive and it has already transitioned to the inactive state and it is time to change
   if (currentState == INACTIVE && currentTime - toInactiveTransitionTime >= transitionLightInterval && currentTransitionState == TO_INACTIVE) {
     toInactiveStoplights(currentTime);
+    Serial.println("TO_INACTIVE");
   } else if (currentState == INACTIVE && currentTransitionState == NONE) {
     allInactiveStoplights(currentTime);
+    Serial.println("INACTIVE");
   } else if (currentState == ACTIVE && (currentTransitionState == TO_PREACTIVE || currentTransitionState == TO_ACTIVE)) { 
     allActiveStoplights(currentTime);
+    Serial.println("ACTIVE");
   }
 }
 
