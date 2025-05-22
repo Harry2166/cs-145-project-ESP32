@@ -5,6 +5,8 @@
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
 #include <map>
+#include <WifiManager.h>
+#include <WiFiClientSecure.h>
 
 /*
 stoplight with id x will have the cycles as: red -> green -> yellow
@@ -69,12 +71,14 @@ enum TransitionState {
 // Global Variables
 HTTPClient client;
 WebSocketsClient webSocket;
-struct Stoplight stoplight1 = {1, 32, 25, 26, LOW, HIGH, HIGH, 0, 0}; 
-struct Stoplight stoplight2 = {2, 27, 14, 13, HIGH, HIGH, LOW, 2, 2};
+WiFiManager wm;
+struct Stoplight stoplight1 = {3, 32, 25, 26, LOW, HIGH, HIGH, 0, 0}; 
+struct Stoplight stoplight2 = {4, 27, 14, 13, HIGH, HIGH, LOW, 2, 2};
 enum State currentState = INACTIVE;
 enum TransitionState currentTransitionState = NONE;
 int activeStoplightID; // global variable to keep track of which stoplight is active
 const byte led = 12; 
+int isConnectedToWifi = 0;
 
 // make it so that onRedLightInterval > onYellowLightInterval + onGreenLightInterval
 const unsigned long onRedLightInterval = 3500; // length of time (in ms) that the red light is on 
@@ -285,16 +289,18 @@ void allActiveStoplights(unsigned long currentTime) {
 void setup() {
   Serial.begin(460800);
   pinMode(led, OUTPUT);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  String APName = "TABIPO_CONFIG_" + String(STOPLIGHT_GROUP_ID);
+  wm.autoConnect(APName.c_str()); // Starts portal if no Wi-Fi
 
   setupStoplight(stoplight1);
   setupStoplight(stoplight2);
-
   // connecting to the websocket
-  Serial.println("connecting to ws://" + String(WS_HOST) + String(WS_URL));
-  webSocket.begin(WS_HOST, WS_PORT, WS_URL); 
+  Serial.println("connecting to wss://" + String(WS_HOST) + String(WS_URL));
+  webSocket.beginSSL(WS_HOST, WS_PORT, WS_URL, "", "wss");
   webSocket.onEvent(webSocketEvent);
-  webSocket.setReconnectInterval(5000);
+  webSocket.setReconnectInterval(2500);
   webSocket.enableHeartbeat(30000, 10000, 3); // add a ping system to the websocket
 
   lightUpStoplight(stoplight1);
@@ -305,24 +311,26 @@ void setup() {
 * will continously connect to the websocket and light up the stoplights
 */
 void loop() {
-   /*if (WiFi.status() == WL_CONNECTED) {*/
-   /*   Serial.println("Still connected to WiFi.");*/
-   /* } else {*/
-   /*     Serial.println("WiFi connection lost!");*/
-   /* } */
-   webSocket.loop();
+    if (WiFi.status() == WL_CONNECTED && !isConnectedToWifi) {
+      isConnectedToWifi = 1;
+      Serial.println("WIFI CONNECTED!");
+    } else if (WiFi.status() != WL_CONNECTED && isConnectedToWifi) {
+      isConnectedToWifi = 0;
+      Serial.println("WIFI DISCONNECTED!");
+    } 
+    webSocket.loop();
   unsigned long currentTime = millis(); // calling this here rn and not within each function so that each time would be synced
 
   // if it is inactive and it has already transitioned to the inactive state and it is time to change
   if (currentState == INACTIVE && currentTime - toInactiveTransitionTime >= transitionLightInterval && currentTransitionState == TO_INACTIVE) {
     toInactiveStoplights(currentTime);
-    Serial.println("TO_INACTIVE");
+    // Serial.println("TO_INACTIVE");
   } else if (currentState == INACTIVE && currentTransitionState == NONE) {
     allInactiveStoplights(currentTime);
-    Serial.println("INACTIVE");
+    // Serial.println("INACTIVE");
   } else if (currentState == ACTIVE && (currentTransitionState == TO_PREACTIVE || currentTransitionState == TO_ACTIVE)) { 
     allActiveStoplights(currentTime);
-    Serial.println("ACTIVE");
+    //Serial.println("ACTIVE");
   }
 }
 
@@ -332,7 +340,7 @@ void loop() {
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length){
   switch (type) {
     case WStype_CONNECTED: {
-      Serial.println("connected to ws://" + String(WS_HOST) + String(WS_URL));
+      Serial.println("connected to wss://" + String(WS_HOST) + String(WS_URL));
       digitalWrite(led, HIGH); 
       webSocket.sendTXT("{\"message\": \"ACK\"}");
       break;
